@@ -111,7 +111,9 @@ export class WireGuardManager {
    * @returns Path to the saved configuration file
    */
   async saveConfig(config: WireGuardConfig): Promise<string> {
-    const configPath = path.join(this.configDir, `${config.id}.conf`);
+    const interfaceName = `wg-${config.id.substring(0, 8)}`;
+    const configPath = path.join(this.configDir, `${interfaceName}.conf`);
+    
     await fsPromises.writeFile(configPath, config.raw);
     logger.debug(`Saved WireGuard config to ${configPath}`);
     return configPath;
