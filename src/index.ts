@@ -9,7 +9,6 @@ import validatorEndpoints from './api/validatorEndpoints.js';
 import tpnClient from './api/tpnClient.js';
 import wireguardManager from './vpn/wireguardManager.js';
 import { getConfig, updateConfig } from './utils/config.js';
-import logger from './utils/logger.js';
 
 // Create CLI program
 const program = new Command();
@@ -353,13 +352,19 @@ program
     }
   });
 
+// Cleanup command - explicitly clean up all WireGuard interfaces
 program
   .command('cleanup')
   .description('Clean up all WireGuard interfaces')
-  .action(() => {
-    console.log('Cleaning up all WireGuard interfaces...');
-    wireguardManager.cleanupAllInterfaces();
-    console.log('Cleanup complete');
+  .action(async () => {
+    const spinner = ora('Cleaning up all WireGuard interfaces...').start();
+    
+    try {
+      wireguardManager.cleanupAllInterfaces();
+      spinner.succeed('All WireGuard interfaces cleaned up');
+    } catch (error) {
+      spinner.fail(`Error: ${(error as Error).message}`);
+    }
   });
 
 // Parse the command line arguments
