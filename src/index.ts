@@ -315,198 +315,138 @@ program
     }
   });
 
+  program
+  .command('reconnect')
+  .description('Reconnect to VPN (can be used to refresh or change country)')
+  .option('-c, --country <code>', 'Country code to connect to (optional)')
+  .action(async (options) => {
+    const spinner = ora('Reconnecting to VPN...').start();
+    
+    try {
+      // Arrêter toute connexion active
+      await routeManager.stopRoute();
+      
+      // Créer une nouvelle connexion
+      let success;
+      if (options.country) {
+        spinner.text = `Connecting to VPN server in ${options.country}...`;
+        success = await routeManager.createDirectConnection(options.country);
+      } else {
+        spinner.text = 'Connecting to random VPN server...';
+        success = await routeManager.createDirectConnection('any');
+      }
+      
+      if (success) {
+        spinner.succeed('VPN connection established successfully');
+        
+        // Show connection information
+        const circuit = routeManager.getActiveCircuit();
+        
+        if (circuit && circuit.nodes.length > 0) {
+          const config = circuit.nodes[0].config;
+          console.log('\nVPN Connection:');
+          console.log(`  - Country: ${config.country || 'Unknown'}`);
+          console.log(`  - Endpoint: ${config.endpoint}`);
+          console.log(`  - Expires at: ${new Date(config.expiresAt).toLocaleString()}`);
+          
+          // Show the new IP
+          try {
+            const newIp = await wireguardManager.getCurrentPublicIp();
+            console.log(`\nNew Public IP: ${newIp}`);
+          } catch (err) {
+            console.log('\nNew Public IP: Unable to determine');
+          }
+        }
+      } else {
+        spinner.fail('Failed to establish VPN connection');
+        process.exit(1);
+      }
+    } catch (error) {
+      spinner.fail(`Error: ${(error as Error).message}`);
+      process.exit(1);
+    }
+  });
+
 // Status command - shows the current VPN status
 program
   .command('status')
   .description('Show the current VPN status')
   .action(async () => {
     try {
-      const isActive = routeManager.isRouteActive();
+      // Vérifier directement si une interface WireGuard est active
+      const isVpnActive = wireguardManager.isVpnActive();
       
-      if (isActive) {
-        const circuit = routeManager.getActiveCircuit();
+      if (isVpnActive) {
         console.log('VPN Status: Active');
         
+        // Obtenir des informations sur l'interface active
+        const interfaceInfo = await wireguardManager.getActiveInterfaceInfo();
+        
+        if (interfaceInfo) {
+          console.log('\nWireGuard Interface:');
+          console.log(`  - Name: ${interfaceInfo.name}`);
+          console.log(`  - Endpoint: ${interfaceInfo.endpoint || 'Unknown'}`);
+          
+          if (interfaceInfo.publicKey) {
+            console.log(`  - Peer Public Key: ${interfaceInfo.publicKey}`);
+          }
+          
+          if (interfaceInfo.allowedIPs) {
+            console.log(`  - Allowed IPs: ${interfaceInfo.allowedIPs}`);
+          }
+          
+          // Tenter d'obtenir le pays si le circuit est en mémoire
+          const circuit = routeManager.getActiveCircuit();
+          if (circuit && circuit.nodes.length > 0) {
+            const node = circuit.nodes[0];
+            if (node.config.country) {
+              console.log(`  - Country: ${node.config.country}`);
+            }
+            
+            if (circuit.expiresAt) {
+              console.log(`  - Expires at: ${circuit.expiresAt.toLocaleString()}`);
+              
+              // Calculer le temps restant
+              const timeRemaining = circuit.expiresAt.getTime() - Date.now();
+              if (timeRemaining > 0) {
+                console.log(`  - Time remaining: ${Math.floor(timeRemaining / 60000)} minutes`);
+              } else {
+                console.log('  - Expired (connection may stop working soon)');
+              }
+            }
+          }
+        }
+        
+        // Afficher le mode (direct ou circuit)
+        const circuit = routeManager.getActiveCircuit();
         if (circuit) {
           if (circuit.nodes.length === 1) {
-            // Simple mode display
-            const config = circuit.nodes[0].config;
-            console.log('\nVPN Connection:');
-            console.log(`  - Country: ${config.country || 'Unknown'}`);
-            console.log(`  - Endpoint: ${config.endpoint}`);
-            console.log(`  - Created at: ${circuit.createdAt.toLocaleString()}`);
-            console.log(`  - Expires at: ${circuit.expiresAt.toLocaleString()}`);
+            console.log('\nConnection Type: Direct VPN');
+          } else if (circuit.nodes.length > 1) {
+            console.log(`\nConnection Type: Circuit (${circuit.nodes.length} hops)`);
             
-            // Check time remaining
-            const timeRemaining = circuit.expiresAt.getTime() - Date.now();
-            console.log(`  - Time remaining: ${Math.floor(timeRemaining / 60000)} minutes`);
-          } else {
-            // Circuit mode display
-            console.log('\nCircuit Information:');
-            console.log(`  - Circuit ID: ${circuit.id}`);
-            console.log(`  - Number of hops: ${circuit.nodes.length}`);
-            console.log(`  - Created at: ${circuit.createdAt.toLocaleString()}`);
-            console.log(`  - Expires at: ${circuit.expiresAt.toLocaleString()}`);
-            
-            // Check time remaining
-            const timeRemaining = circuit.expiresAt.getTime() - Date.now();
-            console.log(`  - Time remaining: ${Math.floor(timeRemaining / 60000)} minutes`);
-            
-            // Show all hops in the circuit with their countries
+            // Afficher le chemin du circuit
             console.log('\nCircuit Path:');
             circuit.nodes.sort((a, b) => a.index - b.index).forEach((node, idx) => {
               console.log(`  - Hop ${idx + 1}: ${node.config.country || 'Unknown'} (${node.config.endpoint})`);
             });
-            
-            // Show exit node information
-            const exitConfig = circuitBuilder.getExitNodeConfig(circuit);
-            console.log('\nExit Node:');
-            console.log(`  - Country: ${exitConfig.country || 'Unknown'}`);
-            console.log(`  - Endpoint: ${exitConfig.endpoint}`);
           }
-          
-          // Show current IP
-          try {
-            const ip = await wireguardManager.getCurrentPublicIp();
-            console.log(`\nCurrent Public IP: ${ip}`);
-          } catch (err) {
-            console.log('\nCurrent Public IP: Unable to determine');
-          }
+        } else {
+          console.log('\nConnection Type: Direct WireGuard connection');
         }
       } else {
         console.log('VPN Status: Not active');
-        
-        // Show original IP
-        try {
-          const ip = await wireguardManager.getCurrentPublicIp();
-          console.log(`\nCurrent Public IP: ${ip}`);
-        } catch (err) {
-          console.log('\nCurrent Public IP: Unable to determine');
-        }
+      }
+      
+      // Toujours afficher l'IP actuelle
+      try {
+        const ip = await wireguardManager.getCurrentPublicIp();
+        console.log(`\nCurrent Public IP: ${ip}`);
+      } catch (err) {
+        console.log('\nCurrent Public IP: Unable to determine');
       }
     } catch (error) {
       console.error(`Error: ${(error as Error).message}`);
-      process.exit(1);
-    }
-  });
-
-// Refresh command - refreshes the current VPN connection
-program
-  .command('refresh')
-  .description('Refresh the current VPN connection')
-  .action(async () => {
-    const spinner = ora('Refreshing VPN connection...').start();
-    
-    try {
-      if (!routeManager.isRouteActive()) {
-        spinner.fail('No active VPN connection to refresh');
-        process.exit(1);
-      }
-      
-      const success = await routeManager.refreshRoute();
-      
-      if (success) {
-        const circuit = routeManager.getActiveCircuit();
-        if (circuit && circuit.nodes.length === 1) {
-          spinner.succeed('VPN connection refreshed successfully');
-        } else {
-          spinner.succeed(`Circuit refreshed with ${circuit?.nodes.length || 0} hops`);
-        }
-      } else {
-        spinner.fail('Failed to refresh VPN connection');
-        process.exit(1);
-      }
-    } catch (error) {
-      spinner.fail(`Error: ${(error as Error).message}`);
-      process.exit(1);
-    }
-  });
-
-// Change exit command - changes the exit node or creates a new connection
-program
-  .command('exit')
-  .description('Change the exit node of the circuit or create a new connection')
-  .option('-c, --country <code>', 'Specific country to use')
-  .action(async (options) => {
-    const spinner = ora('Changing VPN exit point...').start();
-    
-    try {
-      if (!routeManager.isRouteActive()) {
-        spinner.fail('No active VPN connection');
-        process.exit(1);
-      }
-      
-      const circuit = routeManager.getActiveCircuit();
-      
-      // If a specific country is requested, create a new direct connection
-      if (options.country) {
-        spinner.text = `Creating new connection to ${options.country}...`;
-        const success = await routeManager.createDirectConnection(options.country);
-        
-        if (success) {
-          spinner.succeed(`VPN connection changed to ${options.country}`);
-          
-          // Show new exit information
-          const newCircuit = routeManager.getActiveCircuit();
-          if (newCircuit && newCircuit.nodes.length > 0) {
-            const config = newCircuit.nodes[0].config;
-            console.log('\nNew VPN Connection:');
-            console.log(`  - Country: ${config.country || 'Unknown'}`);
-            console.log(`  - Endpoint: ${config.endpoint}`);
-            
-            // Show the new IP
-            try {
-              const ip = await wireguardManager.getCurrentPublicIp();
-              console.log(`\nNew Public IP: ${ip}`);
-            } catch (err) {
-              console.log('\nNew Public IP: Unable to determine');
-            }
-          }
-        } else {
-          spinner.fail(`Failed to change connection to ${options.country}`);
-          process.exit(1);
-        }
-        return;
-      }
-      
-      // Otherwise, use the routeManager's changeExitNode method
-      const success = await routeManager.changeExitNode();
-      
-      if (success) {
-        const newCircuit = routeManager.getActiveCircuit();
-        
-        if (newCircuit && newCircuit.nodes.length === 1) {
-          // Simple mode
-          const config = newCircuit.nodes[0].config;
-          spinner.succeed('VPN connection refreshed successfully');
-          console.log('\nNew VPN Connection:');
-          console.log(`  - Country: ${config.country || 'Unknown'}`);
-          console.log(`  - Endpoint: ${config.endpoint}`);
-        } else {
-          // Circuit mode
-          const exitConfig = newCircuit ? circuitBuilder.getExitNodeConfig(newCircuit) : null;
-          spinner.succeed('Exit node changed successfully');
-          
-          if (exitConfig) {
-            console.log('\nNew Exit Node:');
-            console.log(`  - Country: ${exitConfig.country || 'Unknown'}`);
-            console.log(`  - Endpoint: ${exitConfig.endpoint}`);
-          }
-        }
-        
-        // Show the new IP
-        try {
-          const ip = await wireguardManager.getCurrentPublicIp();
-          console.log(`\nNew Public IP: ${ip}`);
-        } catch (err) {
-          console.log('\nNew Public IP: Unable to determine');
-        }
-      } else {
-        spinner.fail('Failed to change exit node');
-        process.exit(1);
-      }
-    } catch (error) {
-      spinner.fail(`Error: ${(error as Error).message}`);
       process.exit(1);
     }
   });
@@ -707,64 +647,6 @@ program
       spinner.fail(`Error: ${(error as Error).message}`);
     }
   });
-
-// Direct test command - test a direct connection to TPN
-program
-  .command('test')
-  .description('Test a direct connection to TPN')
-  .option('-c, --country <code>', 'Country code to connect to', 'any')
-  .action(async (options) => {
-    const spinner = ora(`Testing direct connection to ${options.country}...`).start();
-    
-    try {
-      // Clean up any existing connections
-      await routeManager.stopRoute();
-      wireguardManager.cleanupAllInterfaces();
-      
-      // Get the original IP
-      const originalIp = await wireguardManager.getCurrentPublicIp();
-      spinner.info(`Original IP: ${originalIp}`);
-      
-      // Get a direct config from TPN
-      spinner.text = `Getting configuration for ${options.country}...`;
-      const configPath = await wireguardManager.getDirectConfig(options.country);
-      
-      // Connect using wg-quick directly
-      spinner.text = `Connecting to ${options.country}...`;
-      
-      try {
-        const success = wireguardManager.activateConfig(configPath);
-        
-        if (success) {
-          spinner.succeed('Connected successfully');
-          
-          // Check if the IP has changed
-          try {
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for connection
-            const newIp = await wireguardManager.getCurrentPublicIp();
-            console.log(`\nNew IP: ${newIp}`);
-            
-            if (newIp === originalIp) {
-              console.log('\nWARNING: IP address has not changed. Connection might not be working properly.');
-            } else {
-              console.log('\nSUCCESS: IP address has changed. Connection is working.');
-            }
-          } catch (error) {
-            console.log('\nUnable to determine new IP address.');
-          }
-        } else {
-          spinner.fail('Failed to connect');
-        }
-      } finally {
-        // Always clean up
-        console.log('\nCleaning up test connection...');
-        wireguardManager.cleanupAllInterfaces();
-      }
-    } catch (error) {
-      spinner.fail(`Test failed: ${(error as Error).message}`);
-    }
-  });
-
 // Parse the command line arguments
 program.parse(process.argv);
 

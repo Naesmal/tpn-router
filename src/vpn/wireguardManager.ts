@@ -381,6 +381,80 @@ export class WireGuardManager {
       throw error;
     }
   }
+  /**
+ * Get information about active WireGuard interfaces
+ * @returns Object containing information about the active interface, or null if none
+ */
+async getActiveInterfaceInfo(): Promise<{
+  name: string;
+  endpoint?: string;
+  publicKey?: string;
+  allowedIPs?: string;
+  lastHandshake?: string;
+} | null> {
+  try {
+    // Vérifier d'abord si des interfaces WireGuard sont actives
+    let interfaces: string[] = [];
+    
+    try {
+      const output = execSync('ip link | grep -E "wg[0-9]|wg-"').toString();
+      interfaces = output.split('\n')
+        .filter(line => line.trim())
+        .map(line => {
+          const match = line.match(/\d+:\s+([^:@]+)[@:]?/);
+          return match ? match[1].trim() : null;
+        })
+        .filter((iface): iface is string => iface !== null);
+    } catch (error) {
+      // Si grep ne trouve rien, c'est normal
+      return null;
+    }
+    
+    if (interfaces.length === 0) {
+      return null;
+    }
+    
+    // Prendre la première interface active (normalement il ne devrait y en avoir qu'une)
+    const interfaceName = interfaces[0];
+    
+    // Obtenir des informations détaillées sur cette interface
+    try {
+      const output = execSync(`wg show ${interfaceName}`).toString();
+      
+      // Extraire les informations pertinentes
+      const result: {
+        name: string;
+        endpoint?: string;
+        publicKey?: string;
+        allowedIPs?: string;
+        lastHandshake?: string;
+      } = { name: interfaceName };
+      
+      // Analyser la sortie ligne par ligne
+      const lines = output.split('\n');
+      for (const line of lines) {
+        if (line.includes('endpoint:')) {
+          result.endpoint = line.split('endpoint:')[1].trim();
+        } else if (line.includes('public key:')) {
+          result.publicKey = line.split('public key:')[1].trim();
+        } else if (line.includes('allowed ips:')) {
+          result.allowedIPs = line.split('allowed ips:')[1].trim();
+        } else if (line.includes('latest handshake:')) {
+          result.lastHandshake = line.split('latest handshake:')[1].trim();
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      logger.warn(`Failed to get detailed info for interface ${interfaceName}: ${(error as Error).message}`);
+      // Retourner au moins le nom de l'interface
+      return { name: interfaceName };
+    }
+  } catch (error) {
+    logger.error(`Failed to get active interface info: ${(error as Error).message}`);
+    return null;
+  }
+}
 }
 
 // Export singleton instance

@@ -4,21 +4,18 @@ A powerful, dynamic routing tool for the TPN decentralized VPN network, inspired
 
 > ⚠️ **Note**: This project was developed for the TPN Hackathon at Endgame Summit.
 
-![TPN Router](https://via.placeholder.com/800x400?text=TPN+Router)
-
 ## Overview
 
-TPN Router is a sophisticated command-line tool that enables you to create anonymous, multi-hop VPN connections through the TPN network. By implementing dynamic routing capabilities similar to the Tor network, TPN Router allows you to route your traffic through multiple VPN servers in different countries, significantly enhancing your privacy and security online.
+TPN Router is a sophisticated command-line tool that enables you to create anonymous VPN connections through the TPN network. It supports both simple direct connections and advanced multi-hop routing similar to Tor, allowing you to route your traffic through different countries and significantly enhancing your privacy and security online.
 
 ### Key Features
 
-- **Multi-hop Routing**: Create dynamic routing circuits with multiple hops to mask your origin
-- **Automatic Node Rotation**: Regularly rotate exit nodes to prevent tracking
-- **Geographic Control**: Specify preferred countries for each hop in your VPN connections
-- **Interactive Country Selection**: Choose countries for each hop with an interactive interface
+- **Simple Mode**: Connect directly to a VPN server in your chosen country
+- **Circuit Mode**: Create multi-hop routing circuits to mask your origin (advanced)
+- **Geographic Control**: Specify preferred countries for your VPN connections
+- **Interactive Country Selection**: Choose countries with an intuitive interface
 - **Intuitive CLI**: Clean and minimalist command-line interface for ease of use
-- **Automatic Management**: Smart connection management with automatic renewal before expiration
-- **Detailed Logging**: Comprehensive logging to track circuit status and connection details
+- **Detailed Logging**: Comprehensive logging to track connection status and details
 
 ## Installation
 
@@ -33,7 +30,6 @@ TPN Router is a sophisticated command-line tool that enables you to create anony
     sudo apt install -y wireguard wireguard-tools resolvconf
     ```
   - Note: `resolvconf` is required for DNS configuration with WireGuard
-
 
 ### Install from Source
 
@@ -61,7 +57,7 @@ TPN Router requires root/administrator privileges to configure network interface
 If you've installed TPN Router globally:
 
 ```bash
-sudo tpn-router start
+sudo tpn-router connect --country FR
 ```
 
 ### Using Local Installation
@@ -70,96 +66,105 @@ If you're running from a local installation:
 
 ```bash
 # When running from the project directory
-sudo npm start -- start
+sudo npm start -- connect --country FR
 
 # Explanation:
 # - "npm start" runs the Node.js application
 # - "--" separates npm arguments from application arguments
-# - "start" is the TPN Router command to start a circuit
+# - "connect" is the TPN Router command to create a VPN connection
+# - "--country FR" specifies you want to connect through a server in France
 ```
 
 ## Usage Guide
 
 ### Quick Start
 
-To create a routing circuit with default settings:
+The simplest and most reliable way to use TPN Router is through direct connection:
 
 ```bash
-sudo tpn-router start
-# or with local installation
-sudo npm start -- start
-```
+# Connect to a VPN server in France
+sudo npm start -- connect --country FR
 
-This creates a circuit with three hops through random countries.
+# Check the status of your connection
+sudo npm start -- status
+
+# Disconnect
+sudo npm start -- stop
+
+# Reconnect (to the same or different country)
+sudo npm start -- reconnect --country US
+```
 
 ### Detailed Commands Reference
 
-#### `start` - Start a new routing circuit
+#### `connect` - Connect directly to a VPN server
 
 ```bash
-# Start with 3 hops through random countries
+# Connect to a VPN server in a specific country
+sudo tpn-router connect --country FR
+
+# Connect to any country (random)
+sudo tpn-router connect
+```
+
+#### `start` - Start a routing circuit
+
+```bash
+# Start with default settings (simple direct connection)
 sudo tpn-router start
 
-# Start with a specific number of hops
-sudo tpn-router start --length 4
+# Start in circuit mode with 3 hops through random countries
+sudo tpn-router start --mode circuit
 
 # Start with specific countries
 sudo tpn-router start --countries US,NL,BR
 
 # Start with interactive country selection
 sudo tpn-router start --interactive
-
-# With local installation
-sudo npm start -- start --length 4
 ```
 
-#### `stop` - Stop the current routing circuit
+#### `stop` - Stop the current VPN connection
 
 ```bash
 sudo tpn-router stop
-# or
-sudo npm start -- stop
 ```
 
-#### `status` - Display current routing details
+#### `status` - Display current connection details
 
 ```bash
 sudo tpn-router status
-# or
-sudo npm start -- status
 ```
 
 This command shows:
-- Active circuit status
-- Number of hops in the circuit
-- Creation and expiration timestamps
-- Complete circuit path with countries for each hop
-- Current exit node country and endpoint
-- Remaining time before expiration
+- Active connection status
+- Country and endpoint information
+- Expiration time and remaining time
 - Your current public IP address
 
-#### `refresh` - Refresh the current routing circuit
+#### `reconnect` - Reconnect to VPN (replacing refresh and exit)
 
 ```bash
-sudo tpn-router refresh
-# or
-sudo npm start -- refresh
+# Reconnect to a random country
+sudo tpn-router reconnect
+
+# Reconnect to a specific country
+sudo tpn-router reconnect --country DE
 ```
 
-#### `exit` - Change the exit node of the circuit
+#### `test` - Test a direct connection
 
 ```bash
-sudo tpn-router exit
-# or
-sudo npm start -- exit
+# Test a connection to a specific country
+sudo tpn-router test --country FR
+
+# Test a connection to any random country
+sudo tpn-router test
 ```
 
 #### `configure` - Configure application settings
 
 ```bash
 sudo tpn-router configure
-# or
-sudo npm start -- configure
 ```
 
 You'll be prompted to set:
@@ -168,37 +173,14 @@ You'll be prompted to set:
 - Preferred countries (comma-separated country codes)
 - Log level (debug, info, warn, error)
 
-#### `validator` - Manage TPN validator endpoints
-
-```bash
-# List all configured validators
-sudo tpn-router validator list
-# or
-sudo npm start -- validator list
-
-# Add a new validator
-sudo tpn-router validator add --ip 185.189.44.166 --port 3000
-# or
-sudo npm start -- validator add --ip 185.189.44.166 --port 3000
-
-# Check all validators
-sudo tpn-router validator check
-# or
-sudo npm start -- validator check
-```
-
 #### `countries` - List available countries in the TPN network
 
 ```bash
 # List countries from a random validator
 sudo tpn-router countries
-# or
-sudo npm start -- countries
 
 # List all countries from all validators
 sudo tpn-router countries --all
-# or
-sudo npm start -- countries --all
 ```
 
 ## Troubleshooting
@@ -207,7 +189,7 @@ sudo npm start -- countries --all
 
 1. **Permission denied**: Make sure to run TPN Router with `sudo` or administrator privileges
    ```bash
-   sudo tpn-router start
+   sudo tpn-router connect --country FR
    ```
 
 2. **WireGuard not installed**: Ensure WireGuard tools are properly installed
@@ -223,50 +205,36 @@ sudo npm start -- countries --all
    sudo systemctl enable resolvconf.service
    ```
 
-4. **Socket hang up or connection errors**: TPN validators might be temporarily unavailable. Try again later or use a different validator
+4. **Connection not working (IP not changing)**: Try the `test` command to verify connectivity
+   ```bash
+   sudo tpn-router test --country FR
+   ```
+
+5. **Cannot determine IP address**: Sometimes IP checking services may be unreliable. Try manually checking your IP.
+
+6. **Socket hang up or connection errors**: TPN validators might be temporarily unavailable. Try again later or use a different validator
    ```bash
    sudo tpn-router validator check
    ```
 
-5. **Country selection issues**: If you experience problems with country selection, try the interactive mode
-   ```bash
-   sudo tpn-router start --interactive
-   ```
-
-6. **Expired configuration**: If you see errors about expired configurations, check your system clock synchronization
-
 ## Architecture
 
-TPN Router implements a sophisticated architecture consisting of several key components:
+TPN Router implements a simplified architecture focused on reliable VPN connections:
 
-1. **Circuit Builder**: Creates and manages multi-hop routing circuits
-2. **Route Manager**: Handles dynamic routing and connection lifecycle
-3. **Connection Handler**: Manages WireGuard VPN connections
-4. **TPN Client**: Interfaces with the TPN network API
-5. **Validator Endpoint Manager**: Manages TPN validator endpoints
-
-![Architecture Diagram](https://via.placeholder.com/800x500?text=TPN+Router+Architecture)
+1. **WireGuard Manager**: Handles WireGuard configurations and interfaces
+2. **Connection Handler**: Manages VPN connections 
+3. **TPN Client**: Interfaces with the TPN network API
+4. **Validator Manager**: Manages the validator endpoints
 
 ## Security Considerations
 
-- TPN Router provides enhanced privacy through multi-hop routing
 - All traffic is encrypted using WireGuard's state-of-the-art cryptography
 - Your original IP is masked from destination servers
-- Multiple hops prevent any single node from knowing both source and destination
+- In circuit mode, multiple hops prevent any single node from knowing both source and destination
 
 ## About TPN Hackathon
 
 This project was developed as part of the TPN Hackathon for the Endgame Summit. TPN is a decentralized VPN infrastructure that provides access to a diverse set of VPN server options around the world. The network incentivizes miners to run VPN servers in unique locations, creating a robust and distributed network.
-
-## Contribution
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b new-feature`
-3. Commit your changes: `git commit -am 'Add new feature'`
-4. Push to the branch: `git push origin new-feature`
-5. Submit a pull request
 
 ## License
 
@@ -281,4 +249,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-*TPN Router - Enhancing your privacy through dynamic multi-hop routing*
+*TPN Router - Enhancing your privacy through TPN's decentralized VPN network*
