@@ -4,6 +4,7 @@
 export interface TpnConfigResponse {
     peer_config: string;
     expires_at: number;
+    country?: string;
   }
   
   export interface ValidatorEndpoint {
@@ -22,6 +23,7 @@ export interface TpnConfigResponse {
     publicKey: string;
     presharedKey: string;
     endpoint: string;
+    address?: string;
     allowedIPs: string[];
     listenPort: number;
     raw: string;
