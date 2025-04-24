@@ -2,6 +2,8 @@
 
 A powerful, dynamic routing tool for the TPN decentralized VPN network, inspired by Tor's circuit-based routing approach.
 
+> ⚠️ **Note**: This project was developed for the TPN Hackathon at Endgame Summit.
+
 ![TPN Router](https://via.placeholder.com/800x400?text=TPN+Router)
 
 ## Overview
@@ -13,6 +15,7 @@ TPN Router is a sophisticated command-line tool that enables you to create anony
 - **Multi-hop Routing**: Create dynamic routing circuits with multiple hops to mask your origin
 - **Automatic Node Rotation**: Regularly rotate exit nodes to prevent tracking
 - **Geographic Control**: Specify preferred countries for each hop in your VPN connections
+- **Interactive Country Selection**: Choose countries for each hop with an interactive interface
 - **Intuitive CLI**: Clean and minimalist command-line interface for ease of use
 - **Automatic Management**: Smart connection management with automatic renewal before expiration
 - **Detailed Logging**: Comprehensive logging to track circuit status and connection details
@@ -31,17 +34,12 @@ TPN Router is a sophisticated command-line tool that enables you to create anony
     ```
   - Note: `resolvconf` is required for DNS configuration with WireGuard
 
-### Install from NPM
-
-```bash
-npm install -g tpn-router
-```
 
 ### Install from Source
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/tpn-router.git
+git clone https://github.com/Naesmal/tpn-router.git
 cd tpn-router
 
 # Install dependencies
@@ -108,6 +106,9 @@ sudo tpn-router start --length 4
 # Start with specific countries
 sudo tpn-router start --countries US,NL,BR
 
+# Start with interactive country selection
+sudo tpn-router start --interactive
+
 # With local installation
 sudo npm start -- start --length 4
 ```
@@ -132,6 +133,7 @@ This command shows:
 - Active circuit status
 - Number of hops in the circuit
 - Creation and expiration timestamps
+- Complete circuit path with countries for each hop
 - Current exit node country and endpoint
 - Remaining time before expiration
 - Your current public IP address
@@ -188,9 +190,15 @@ sudo npm start -- validator check
 #### `countries` - List available countries in the TPN network
 
 ```bash
+# List countries from a random validator
 sudo tpn-router countries
 # or
 sudo npm start -- countries
+
+# List all countries from all validators
+sudo tpn-router countries --all
+# or
+sudo npm start -- countries --all
 ```
 
 ## Troubleshooting
@@ -220,7 +228,12 @@ sudo npm start -- countries
    sudo tpn-router validator check
    ```
 
-5. **Expired configuration**: If you see errors about expired configurations, check your system clock synchronization
+5. **Country selection issues**: If you experience problems with country selection, try the interactive mode
+   ```bash
+   sudo tpn-router start --interactive
+   ```
+
+6. **Expired configuration**: If you see errors about expired configurations, check your system clock synchronization
 
 ## Architecture
 
@@ -241,6 +254,10 @@ TPN Router implements a sophisticated architecture consisting of several key com
 - Your original IP is masked from destination servers
 - Multiple hops prevent any single node from knowing both source and destination
 
+## About TPN Hackathon
+
+This project was developed as part of the TPN Hackathon for the Endgame Summit. TPN is a decentralized VPN infrastructure that provides access to a diverse set of VPN server options around the world. The network incentivizes miners to run VPN servers in unique locations, creating a robust and distributed network.
+
 ## Contribution
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -257,9 +274,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgements
 
-- TPN Network for providing the decentralized VPN infrastructure
+- TPN Network for providing the decentralized VPN infrastructure and hosting the Hackathon
 - WireGuard for the secure VPN protocol
 - The Tor Project for inspiration on circuit-based routing
+- Endgame Summit for the Hackathon opportunity
 
 ---
 

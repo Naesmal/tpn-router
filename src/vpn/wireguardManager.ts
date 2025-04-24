@@ -35,65 +35,68 @@ export class WireGuardManager {
    * @param country Optional country code
    * @returns Parsed WireGuard configuration object
    */
-  parseConfig(configText: string, expiresAt: number, country?: string): WireGuardConfig {
-    // Generate a unique ID for this configuration
-    const id = uuidv4();
+
+parseConfig(configText: string, expiresAt: number, country?: string): WireGuardConfig {
+  // Generate a unique ID for this configuration
+  const id = uuidv4();
+  
+  // Default values
+  const config: WireGuardConfig = {
+    id,
+    privateKey: '',
+    publicKey: '',
+    presharedKey: '',
+    endpoint: '',
+    allowedIPs: ['0.0.0.0/0', '::/0'],
+    listenPort: 51820,
+    raw: configText,
+    expiresAt,
+    country,
+    dns: '10.13.13.1'  // Ajouter la valeur DNS par défaut
+  };
+  
+  // Parse the configuration text
+  const lines = configText.split('\n');
+  let currentSection = '';
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
     
-    // Default values
-    const config: WireGuardConfig = {
-      id,
-      privateKey: '',
-      publicKey: '',
-      presharedKey: '',
-      endpoint: '',
-      allowedIPs: ['0.0.0.0/0', '::/0'],
-      listenPort: 51820,
-      raw: configText,
-      expiresAt,
-      country
-    };
+    // Skip empty lines
+    if (!trimmedLine) continue;
     
-    // Parse the configuration text
-    const lines = configText.split('\n');
-    let currentSection = '';
-    
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      
-      // Skip empty lines
-      if (!trimmedLine) continue;
-      
-      // Check if this is a section header
-      if (trimmedLine.startsWith('[') && trimmedLine.endsWith(']')) {
-        currentSection = trimmedLine.slice(1, -1);
-        continue;
-      }
-      
-      // Skip lines that are not in a section
-      if (!currentSection) continue;
-      
-      // Parse key-value pairs
-      const match = trimmedLine.match(/^(\w+)\s*=\s*(.+)$/);
-      if (!match) continue;
-      
-      const [, key, value] = match;
-      
-      switch (currentSection) {
-        case 'Interface':
-          if (key === 'PrivateKey') config.privateKey = value;
-          if (key === 'ListenPort') config.listenPort = parseInt(value, 10);
-          break;
-        case 'Peer':
-          if (key === 'PublicKey') config.publicKey = value;
-          if (key === 'PresharedKey') config.presharedKey = value;
-          if (key === 'Endpoint') config.endpoint = value;
-          if (key === 'AllowedIPs') config.allowedIPs = value.split(',').map((ip: any) => ip.trim());
-          break;
-      }
+    // Check if this is a section header
+    if (trimmedLine.startsWith('[') && trimmedLine.endsWith(']')) {
+      currentSection = trimmedLine.slice(1, -1);
+      continue;
     }
     
-    return config;
+    // Skip lines that are not in a section
+    if (!currentSection) continue;
+    
+    // Parse key-value pairs
+    const match = trimmedLine.match(/^(\w+)\s*=\s*(.+)$/);
+    if (!match) continue;
+    
+    const [, key, value] = match;
+    
+    switch (currentSection) {
+      case 'Interface':
+        if (key === 'PrivateKey') config.privateKey = value;
+        if (key === 'ListenPort') config.listenPort = parseInt(value, 10);
+        if (key === 'DNS') config.dns = value;  // Capturer la valeur DNS
+        break;
+      case 'Peer':
+        if (key === 'PublicKey') config.publicKey = value;
+        if (key === 'PresharedKey') config.presharedKey = value;
+        if (key === 'Endpoint') config.endpoint = value;
+        if (key === 'AllowedIPs') config.allowedIPs = value.split(',').map((ip: string) => ip.trim());
+        break;
+    }
   }
+  
+  return config;
+}
   
   /**
    * Parse a TPN API response into a WireGuard config
@@ -114,13 +117,21 @@ export class WireGuardManager {
     const interfaceName = `wg-${config.id.substring(0, 8)}`;
     const configPath = path.join(this.configDir, `${interfaceName}.conf`);
     
-    // Modifier dynamiquement l'adresse IP pour éviter les conflits
+    // Ne pas modifier le réseau 10.13.13.x mais juste le dernier nombre pour éviter les conflits
     const randomLast = Math.floor(Math.random() * 254) + 1;
-    const randomSecond = Math.floor(Math.random() * 254) + 1;
-    const modifiedConfig = config.raw.replace(
+    let modifiedConfig = config.raw.replace(
       /Address\s*=\s*10\.13\.13\.\d+/,
-      `Address = 10.${randomSecond}.${randomLast}.1`
+      `Address = 10.13.13.${randomLast}`
     );
+    
+    // Assurez-vous que la configuration contient la ligne DNS
+    if (!modifiedConfig.includes('DNS =')) {
+      // Ajouter DNS après la dernière ligne de la section Interface
+      modifiedConfig = modifiedConfig.replace(
+        /\[Interface\]([\s\S]*?)(?=\[Peer\])/,
+        `[Interface]$1DNS = 10.13.13.1\n\n`
+      );
+    }
     
     await fsPromises.writeFile(configPath, modifiedConfig);
     logger.debug(`Saved WireGuard config to ${configPath}`);

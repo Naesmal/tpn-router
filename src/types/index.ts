@@ -27,6 +27,7 @@ export interface TpnConfigResponse {
     raw: string;
     expiresAt: number;
     country?: string;
+    dns?: string; 
   }
   
   /**
