@@ -150,17 +150,6 @@ sudo tpn-router reconnect
 # Reconnect to a specific country
 sudo tpn-router reconnect --country DE
 ```
-
-#### `test` - Test a direct connection
-
-```bash
-# Test a connection to a specific country
-sudo tpn-router test --country FR
-
-# Test a connection to any random country
-sudo tpn-router test
-```
-
 #### `configure` - Configure application settings
 
 ```bash
@@ -204,15 +193,9 @@ sudo tpn-router countries --all
    sudo systemctl start resolvconf.service
    sudo systemctl enable resolvconf.service
    ```
+6. **Cannot determine IP address**: Sometimes IP checking services may be unreliable. Try manually checking your IP.
 
-4. **Connection not working (IP not changing)**: Try the `test` command to verify connectivity
-   ```bash
-   sudo tpn-router test --country FR
-   ```
-
-5. **Cannot determine IP address**: Sometimes IP checking services may be unreliable. Try manually checking your IP.
-
-6. **Socket hang up or connection errors**: TPN validators might be temporarily unavailable. Try again later or use a different validator
+7. **Socket hang up or connection errors**: TPN validators might be temporarily unavailable. Try again later or use a different validator
    ```bash
    sudo tpn-router validator check
    ```
