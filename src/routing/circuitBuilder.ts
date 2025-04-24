@@ -24,12 +24,13 @@ export class CircuitBuilder {
     
     logger.info(`Building a new circuit with ${circuitLength} hops`);
     
-    // Create the circuit structure
+    // Créer la structure du circuit avec une nouvelle expiration basée sur l'heure locale
+    const currentTime = Date.now();
     const circuit: Circuit = {
       id: uuidv4(),
       nodes: [],
-      createdAt: new Date(),
-      expiresAt: new Date(Date.now() + defaultLeaseDuration * 60 * 1000),
+      createdAt: new Date(currentTime),
+      expiresAt: new Date(currentTime + defaultLeaseDuration * 60 * 1000),
       active: false
     };
     
@@ -52,6 +53,12 @@ export class CircuitBuilder {
         // Parse the configuration
         const config = wireguardManager.parseTpnResponse(configResponse, country);
         
+        // Ajuster l'expiration si elle est dans le passé ou trop proche
+        if (config.expiresAt <= currentTime) {
+          logger.warn(`Config expiration from server (${new Date(config.expiresAt).toISOString()}) is in the past, adjusting...`);
+          config.expiresAt = currentTime + defaultLeaseDuration * 60 * 1000;
+        }
+        
         // Add this node to the circuit
         const node: CircuitNode = {
           id: uuidv4(),
@@ -62,10 +69,17 @@ export class CircuitBuilder {
         circuit.nodes.push(node);
       }
       
-      // Set the expiration to the earliest expiration among all nodes
-      circuit.expiresAt = new Date(Math.min(
-        ...circuit.nodes.map((node: any) => node.config.expiresAt)
-      ));
+      // Recalculer l'expiration pour qu'elle soit l'expiration la plus récente parmi tous les nœuds
+      // et assurez-vous qu'elle est bien dans le futur
+      const nodeExpirations = circuit.nodes.map(node => node.config.expiresAt);
+      const earliestExpiration = Math.min(...nodeExpirations);
+      
+      if (earliestExpiration <= currentTime) {
+        logger.warn(`Circuit expiration calculated (${new Date(earliestExpiration).toISOString()}) is in the past, using default lease duration`);
+        circuit.expiresAt = new Date(currentTime + defaultLeaseDuration * 60 * 1000);
+      } else {
+        circuit.expiresAt = new Date(earliestExpiration);
+      }
       
       logger.success(`Built circuit with ${circuit.nodes.length} hops, expires at ${circuit.expiresAt.toISOString()}`);
       return circuit;
@@ -96,8 +110,10 @@ export class CircuitBuilder {
     }
     
     // Check if circuit has expired
-    if (circuit.expiresAt < new Date()) {
+    const currentTime = Date.now();
+    if (circuit.expiresAt.getTime() < currentTime) {
       logger.error('Invalid circuit: Circuit has expired');
+      logger.debug(`Current time: ${new Date(currentTime).toISOString()}, Expiration: ${circuit.expiresAt.toISOString()}`);
       return false;
     }
     
