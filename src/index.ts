@@ -353,8 +353,14 @@ program
     }
   });
 
-  wireguardManager.cleanupAllInterfaces();
-  console.log('Cleaned up all WireGuard interfaces');
+program
+  .command('cleanup')
+  .description('Clean up all WireGuard interfaces')
+  .action(() => {
+    console.log('Cleaning up all WireGuard interfaces...');
+    wireguardManager.cleanupAllInterfaces();
+    console.log('Cleanup complete');
+  });
 
 // Parse the command line arguments
 program.parse(process.argv);
