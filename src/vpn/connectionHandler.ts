@@ -1,8 +1,8 @@
-import { WireGuardConfig } from '../types';
-import wireguardManager from './wireguardManager';
-import logger from '../utils/logger';
-import { getConfig } from '../utils/config';
-import tpnClient from '../api/tpnClient';
+import { WireGuardConfig } from '../types/index.js';
+import wireguardManager from './wireguardManager.js';
+import logger from '../utils/logger.js';
+import { getConfig } from '../utils/config.js';
+import tpnClient from '../api/tpnClient.js';
 
 /**
  * Class to handle VPN connections

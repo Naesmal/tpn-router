@@ -3,13 +3,13 @@ import { Command } from 'commander';
 import inquirer from 'inquirer';
 import ora from 'ora';
 
-import routeManager from './routing/routeManager';
-import circuitBuilder from './routing/circuitBuilder';
-import validatorEndpoints from './api/validatorEndpoints';
-import tpnClient from './api/tpnClient';
-import wireguardManager from './vpn/wireguardManager';
-import { getConfig, updateConfig } from './utils/config';
-import logger from './utils/logger';
+import routeManager from './routing/routeManager.js';
+import circuitBuilder from './routing/circuitBuilder.js';
+import validatorEndpoints from './api/validatorEndpoints.js';
+import tpnClient from './api/tpnClient.js';
+import wireguardManager from './vpn/wireguardManager.js';
+import { getConfig, updateConfig } from './utils/config.js';
+import logger from './utils/logger.js';
 
 // Create CLI program
 const program = new Command();
@@ -253,7 +253,7 @@ program
           name: 'preferredCountries',
           message: 'Preferred countries (comma-separated country codes):',
           default: config.preferredCountries.join(','),
-          filter: (input: string) => input ? input.split(',').map(c => c.trim().toUpperCase()) : [],
+          filter: (input: string) => input ? input.split(',').map((c: any) => c.trim().toUpperCase()) : [],
         },
         {
           type: 'list',
@@ -287,7 +287,7 @@ validatorCommand
     if (validators.length === 0) {
       console.log('  No validators configured');
     } else {
-      validators.forEach((validator, index) => {
+      validators.forEach((validator: any, index: any) => {
         console.log(`  ${index + 1}. ${validator.ip}:${validator.port} - ${validator.isActive ? 'Active' : 'Inactive'}`);
       });
     }

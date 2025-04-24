@@ -3,8 +3,8 @@ import path from 'path';
 import { promises as fsPromises } from 'fs';
 import { execSync, spawn } from 'child_process';
 import { v4 as uuidv4 } from 'uuid';
-import { WireGuardConfig, TpnConfigResponse } from '../types';
-import logger from '../utils/logger';
+import { WireGuardConfig, TpnConfigResponse } from '../types/index.js';
+import logger from '../utils/logger.js';
 import os from 'os';
 
 /**
@@ -87,7 +87,7 @@ export class WireGuardManager {
           if (key === 'PublicKey') config.publicKey = value;
           if (key === 'PresharedKey') config.presharedKey = value;
           if (key === 'Endpoint') config.endpoint = value;
-          if (key === 'AllowedIPs') config.allowedIPs = value.split(',').map(ip => ip.trim());
+          if (key === 'AllowedIPs') config.allowedIPs = value.split(',').map((ip: any) => ip.trim());
           break;
       }
     }
@@ -172,8 +172,8 @@ export class WireGuardManager {
       const output = execSync('wg show').toString();
       // Extract interface names
       const interfaces = output.split('\n')
-        .filter(line => line.includes('interface:'))
-        .map(line => line.split(' ')[1]);
+        .filter((line: any) => line.includes('interface:'))
+        .map((line: any) => line.split(' ')[1]);
       
       // Check if our config ID is in one of the interfaces
       return interfaces.some(iface => iface.includes(configId));

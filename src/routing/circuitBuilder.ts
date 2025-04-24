@@ -1,9 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Circuit, CircuitNode, WireGuardConfig } from '../types';
-import tpnClient from '../api/tpnClient';
-import wireguardManager from '../vpn/wireguardManager';
-import { getConfig } from '../utils/config';
-import logger from '../utils/logger';
+import { Circuit, CircuitNode, WireGuardConfig } from '../types/index.js';
+import tpnClient from '../api/tpnClient.js';
+import wireguardManager from '../vpn/wireguardManager.js';
+import { getConfig } from '../utils/config.js';
+import logger from '../utils/logger.js';
 
 /**
  * Class to build and manage Tor-like circuits through multiple VPN nodes
@@ -64,7 +64,7 @@ export class CircuitBuilder {
       
       // Set the expiration to the earliest expiration among all nodes
       circuit.expiresAt = new Date(Math.min(
-        ...circuit.nodes.map(node => node.config.expiresAt)
+        ...circuit.nodes.map((node: any) => node.config.expiresAt)
       ));
       
       logger.success(`Built circuit with ${circuit.nodes.length} hops, expires at ${circuit.expiresAt.toISOString()}`);

@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { ValidatorEndpoint } from '../types';
-import { getConfig, updateValidatorStatus, addValidator } from '../utils/config';
-import logger from '../utils/logger';
+import { ValidatorEndpoint } from '../types/index.js';
+import { getConfig, updateValidatorStatus, addValidator } from '../utils/config.js';
+import logger from '../utils/logger.js';
 
 /**
  * Class for managing TPN validator endpoints
@@ -41,7 +41,7 @@ export class ValidatorEndpointManager {
     
     logger.info(`Checking ${validators.length} validators...`);
     
-    const checkPromises = validators.map(async (validator) => {
+    const checkPromises = validators.map(async (validator: any) => {
       const isActive = await this.checkValidator(validator);
       if (isActive) activeCount++;
     });
