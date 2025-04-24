@@ -1,26 +1,35 @@
 # TPN Router
 
-A dynamic routing tool for the TPN decentralized VPN network, inspired by Tor's circuit-based routing approach.
+A powerful, dynamic routing tool for the TPN decentralized VPN network, inspired by Tor's circuit-based routing approach.
+
+![TPN Router](https://via.placeholder.com/800x400?text=TPN+Router)
 
 ## Overview
 
-TPN Router is a command-line tool that allows you to create anonymous, multi-hop VPN connections through the TPN network. It provides dynamic routing capabilities similar to Tor, allowing you to route your traffic through multiple VPN servers in different countries for enhanced privacy and security.
+TPN Router is a sophisticated command-line tool that enables you to create anonymous, multi-hop VPN connections through the TPN network. By implementing dynamic routing capabilities similar to the Tor network, TPN Router allows you to route your traffic through multiple VPN servers in different countries, significantly enhancing your privacy and security online.
 
-Key features:
-- Create dynamic routing circuits with multiple hops
-- Automatically rotate exit nodes
-- Specify preferred countries for your VPN connections
-- Clean and minimalist command-line interface
-- Automatic connection management and renewal
+### Key Features
+
+- **Multi-hop Routing**: Create dynamic routing circuits with multiple hops to mask your origin
+- **Automatic Node Rotation**: Regularly rotate exit nodes to prevent tracking
+- **Geographic Control**: Specify preferred countries for each hop in your VPN connections
+- **Intuitive CLI**: Clean and minimalist command-line interface for ease of use
+- **Automatic Management**: Smart connection management with automatic renewal before expiration
+- **Detailed Logging**: Comprehensive logging to track circuit status and connection details
 
 ## Installation
 
 ### Prerequisites
 
-- Node.js 16 or higher
-- WireGuard tools
+- **Node.js 16 or higher**
+- **WireGuard Tools**
   - Mac: `brew install wireguard-tools`
-  - Linux (Debian/Ubuntu): `sudo apt update && sudo apt install -y wireguard wireguard-tools`
+  - Linux (Debian/Ubuntu): 
+    ```bash
+    sudo apt update
+    sudo apt install -y wireguard wireguard-tools resolvconf
+    ```
+  - Note: `resolvconf` is required for DNS configuration with WireGuard
 
 ### Install from NPM
 
@@ -28,7 +37,7 @@ Key features:
 npm install -g tpn-router
 ```
 
-### Install from source
+### Install from Source
 
 ```bash
 # Clone the repository
@@ -41,128 +50,206 @@ npm install
 # Build the project
 npm run build
 
-# Link the CLI globally
+# Link the CLI globally (optional)
 npm link
 ```
 
-## Usage
+## Getting Started
+
+TPN Router requires root/administrator privileges to configure network interfaces. You can run commands in two ways:
+
+### Using the Global Installation
+
+If you've installed TPN Router globally:
+
+```bash
+sudo tpn-router start
+```
+
+### Using Local Installation
+
+If you're running from a local installation:
+
+```bash
+# When running from the project directory
+sudo npm start -- start
+
+# Explanation:
+# - "npm start" runs the Node.js application
+# - "--" separates npm arguments from application arguments
+# - "start" is the TPN Router command to start a circuit
+```
+
+## Usage Guide
 
 ### Quick Start
 
-To start a routing circuit with default settings:
+To create a routing circuit with default settings:
 
 ```bash
-tpn-router start
+sudo tpn-router start
+# or with local installation
+sudo npm start -- start
 ```
 
-This will create a routing circuit with three hops through random countries.
+This creates a circuit with three hops through random countries.
 
-### Commands
+### Detailed Commands Reference
 
-#### `start`
-
-Start a new routing circuit.
+#### `start` - Start a new routing circuit
 
 ```bash
 # Start with 3 hops through random countries
-tpn-router start
+sudo tpn-router start
 
 # Start with a specific number of hops
-tpn-router start --length 4
+sudo tpn-router start --length 4
 
 # Start with specific countries
-tpn-router start --countries US,NL,BR
+sudo tpn-router start --countries US,NL,BR
+
+# With local installation
+sudo npm start -- start --length 4
 ```
 
-#### `stop`
-
-Stop the current routing circuit.
+#### `stop` - Stop the current routing circuit
 
 ```bash
-tpn-router stop
+sudo tpn-router stop
+# or
+sudo npm start -- stop
 ```
 
-#### `status`
-
-Display the current routing status.
+#### `status` - Display current routing details
 
 ```bash
-tpn-router status
+sudo tpn-router status
+# or
+sudo npm start -- status
 ```
 
-This will show:
-- If a circuit is active
+This command shows:
+- Active circuit status
 - Number of hops in the circuit
+- Creation and expiration timestamps
 - Current exit node country and endpoint
-- Time remaining before the circuit expires
+- Remaining time before expiration
 - Your current public IP address
 
-#### `refresh`
-
-Refresh the current routing circuit.
+#### `refresh` - Refresh the current routing circuit
 
 ```bash
-tpn-router refresh
+sudo tpn-router refresh
+# or
+sudo npm start -- refresh
 ```
 
-#### `exit`
-
-Change the exit node of the current circuit.
+#### `exit` - Change the exit node of the circuit
 
 ```bash
-tpn-router exit
+sudo tpn-router exit
+# or
+sudo npm start -- exit
 ```
 
-#### `configure`
-
-Configure the application settings.
+#### `configure` - Configure application settings
 
 ```bash
-tpn-router configure
+sudo tpn-router configure
+# or
+sudo npm start -- configure
 ```
 
-This will prompt you to set:
+You'll be prompted to set:
 - Default circuit length
-- Default lease duration
-- Preferred countries
-- Log level
+- Default lease duration (in minutes)
+- Preferred countries (comma-separated country codes)
+- Log level (debug, info, warn, error)
 
-#### `validator`
-
-Manage validator endpoints.
+#### `validator` - Manage TPN validator endpoints
 
 ```bash
 # List all configured validators
-tpn-router validator list
+sudo tpn-router validator list
+# or
+sudo npm start -- validator list
 
 # Add a new validator
-tpn-router validator add --ip 192.168.1.1 --port 3000
+sudo tpn-router validator add --ip 185.189.44.166 --port 3000
+# or
+sudo npm start -- validator add --ip 185.189.44.166 --port 3000
 
 # Check all validators
-tpn-router validator check
+sudo tpn-router validator check
+# or
+sudo npm start -- validator check
 ```
 
-#### `countries`
-
-List available countries in the TPN network.
+#### `countries` - List available countries in the TPN network
 
 ```bash
-tpn-router countries
+sudo tpn-router countries
+# or
+sudo npm start -- countries
 ```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Permission denied**: Make sure to run TPN Router with `sudo` or administrator privileges
+   ```bash
+   sudo tpn-router start
+   ```
+
+2. **WireGuard not installed**: Ensure WireGuard tools are properly installed
+   ```bash
+   which wg
+   which wg-quick
+   ```
+
+3. **resolvconf not found**: Install and enable resolvconf
+   ```bash
+   sudo apt install resolvconf
+   sudo systemctl start resolvconf.service
+   sudo systemctl enable resolvconf.service
+   ```
+
+4. **Socket hang up or connection errors**: TPN validators might be temporarily unavailable. Try again later or use a different validator
+   ```bash
+   sudo tpn-router validator check
+   ```
+
+5. **Expired configuration**: If you see errors about expired configurations, check your system clock synchronization
 
 ## Architecture
 
-TPN Router consists of several key components:
+TPN Router implements a sophisticated architecture consisting of several key components:
 
 1. **Circuit Builder**: Creates and manages multi-hop routing circuits
-2. **Route Manager**: Handles the dynamic routing and connection lifecycle
+2. **Route Manager**: Handles dynamic routing and connection lifecycle
 3. **Connection Handler**: Manages WireGuard VPN connections
 4. **TPN Client**: Interfaces with the TPN network API
 5. **Validator Endpoint Manager**: Manages TPN validator endpoints
 
+![Architecture Diagram](https://via.placeholder.com/800x500?text=TPN+Router+Architecture)
+
+## Security Considerations
+
+- TPN Router provides enhanced privacy through multi-hop routing
+- All traffic is encrypted using WireGuard's state-of-the-art cryptography
+- Your original IP is masked from destination servers
+- Multiple hops prevent any single node from knowing both source and destination
+
 ## Contribution
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b new-feature`
+3. Commit your changes: `git commit -am 'Add new feature'`
+4. Push to the branch: `git push origin new-feature`
+5. Submit a pull request
 
 ## License
 
@@ -173,3 +260,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - TPN Network for providing the decentralized VPN infrastructure
 - WireGuard for the secure VPN protocol
 - The Tor Project for inspiration on circuit-based routing
+
+---
+
+*TPN Router - Enhancing your privacy through dynamic multi-hop routing*

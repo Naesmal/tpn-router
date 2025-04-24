@@ -74,6 +74,8 @@ export class ConnectionHandler {
   async disconnect(): Promise<boolean> {
     if (!this.activeConfig || !this.configPath) {
       logger.info('No active VPN connection to disconnect');
+      // Nettoyage de sécurité même si nous pensons qu'il n'y a pas de connexion active
+      wireguardManager.cleanupAllInterfaces();
       return true;
     }
     
@@ -87,17 +89,20 @@ export class ConnectionHandler {
       // Deactivate the configuration
       const success = wireguardManager.deactivateConfig(this.configPath);
       
-      if (success) {
-        logger.success(`Disconnected from VPN server: ${this.activeConfig.endpoint}`);
-        this.activeConfig = null;
-        this.configPath = null;
-        return true;
-      } else {
-        logger.error('Failed to disconnect from VPN');
-        return false;
+      // Même en cas d'échec, on tente un nettoyage complet
+      if (!success) {
+        logger.warn('Failed to disconnect normally, attempting full cleanup');
+        wireguardManager.cleanupAllInterfaces();
       }
+      
+      logger.success(`Disconnected from VPN server: ${this.activeConfig.endpoint}`);
+      this.activeConfig = null;
+      this.configPath = null;
+      return true;
     } catch (error) {
       logger.error(`Disconnect failed: ${(error as Error).message}`);
+      // En cas d'erreur, tentative de nettoyage complet
+      wireguardManager.cleanupAllInterfaces();
       return false;
     }
   }

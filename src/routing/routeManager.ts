@@ -3,6 +3,8 @@ import circuitBuilder from './circuitBuilder.js';
 import connectionHandler from '../vpn/connectionHandler.js';
 import logger from '../utils/logger.js';
 import { EventEmitter } from 'events';
+import { execSync } from 'child_process';
+import wireguardManager from '../vpn/wireguardManager.js';
 
 /**
  * Class to manage dynamic routing through TPN circuits
@@ -23,6 +25,10 @@ export class RouteManager extends EventEmitter {
    */
   async createRoute(length?: number, countries?: string[]): Promise<boolean> {
     try {
+      // Clean up any existing WireGuard interfaces
+      logger.info('Cleaning up existing WireGuard interfaces...');
+      wireguardManager.cleanupAllInterfaces();
+      
       // Stop any existing route
       await this.stopRoute();
       
@@ -80,7 +86,9 @@ export class RouteManager extends EventEmitter {
    */
   async stopRoute(): Promise<boolean> {
     if (!this.activeCircuit) {
-      return true; // No active circuit to stop
+      // No active circuit, nothing to stop
+      wireguardManager.cleanupAllInterfaces();
+      return true;
     }
     
     try {
@@ -92,6 +100,9 @@ export class RouteManager extends EventEmitter {
       
       // Disconnect from the VPN
       await connectionHandler.disconnect();
+      
+      // Assurez-vous que toutes les interfaces sont nettoyées
+      wireguardManager.cleanupAllInterfaces();
       
       // Mark the circuit as inactive
       this.activeCircuit.active = false;
@@ -145,7 +156,23 @@ export class RouteManager extends EventEmitter {
    * @returns Boolean indicating if route is active
    */
   isRouteActive(): boolean {
-    return this.activeCircuit !== null && this.activeCircuit.active;
+    // Vérifier si le circuit est considéré comme actif
+    if (this.activeCircuit !== null && this.activeCircuit.active) {
+      // Mais aussi vérifier si l'interface est réellement active
+      const entryConfig = this.activeCircuit ? circuitBuilder.getEntryNodeConfig(this.activeCircuit) : null;
+      if (entryConfig) {
+        const interfaceName = `wg-${entryConfig.id.substring(0, 8)}`;
+        try {
+          const output = execSync(`ip link show ${interfaceName}`).toString();
+          return output.includes('state UP');
+        } catch (error) {
+          // L'interface n'existe pas
+          this.activeCircuit = null;
+          return false;
+        }
+      }
+    }
+    return false;
   }
   
   /**

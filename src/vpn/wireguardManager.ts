@@ -114,7 +114,15 @@ export class WireGuardManager {
     const interfaceName = `wg-${config.id.substring(0, 8)}`;
     const configPath = path.join(this.configDir, `${interfaceName}.conf`);
     
-    await fsPromises.writeFile(configPath, config.raw);
+    // Modifier dynamiquement l'adresse IP pour éviter les conflits
+    const randomLast = Math.floor(Math.random() * 254) + 1;
+    const randomSecond = Math.floor(Math.random() * 254) + 1;
+    const modifiedConfig = config.raw.replace(
+      /Address\s*=\s*10\.13\.13\.\d+/,
+      `Address = 10.${randomSecond}.${randomLast}.1`
+    );
+    
+    await fsPromises.writeFile(configPath, modifiedConfig);
     logger.debug(`Saved WireGuard config to ${configPath}`);
     return configPath;
   }
@@ -202,6 +210,48 @@ export class WireGuardManager {
     } catch (error) {
       logger.error(`Failed to get public IP: ${(error as Error).message}`);
       throw error;
+    }
+  }
+  /**
+   * Clean up all WireGuard interfaces
+   * @returns Boolean indicating success
+   */
+  cleanupAllInterfaces(): boolean {
+    try {
+      const output = execSync('ip link | grep wg-').toString();
+      const interfaces = output.split('\n')
+        .filter(line => line.trim())
+        .map(line => {
+          const match = line.match(/\d+:\s+([^:]+):/);
+          return match ? match[1] : null;
+        })
+        .filter(iface => iface);
+      
+      if (interfaces.length === 0) {
+        logger.debug('No WireGuard interfaces to clean up');
+        return true;
+      }
+      
+      for (const iface of interfaces) {
+        try {
+          console.log(`Cleaning up interface: ${iface}`);
+          // Utiliser directement ip link delete au lieu de wg-quick
+          execSync(`ip link delete ${iface}`, { stdio: 'inherit' });
+        } catch (error) {
+          logger.warn(`Failed to clean up interface ${iface}: ${(error as Error).message}`);
+        }
+      }
+      
+      console.log("Cleaned up all WireGuard interfaces");
+      return true;
+    } catch (error) {
+      // Si grep ne trouve rien, il renvoie une erreur
+      if ((error as any).status === 1 && (error as any).stderr.toString().trim() === '') {
+        logger.debug('No WireGuard interfaces to clean up');
+        return true;
+      }
+      logger.error(`Failed to list WireGuard interfaces: ${(error as Error).message}`);
+      return false;
     }
   }
 }
